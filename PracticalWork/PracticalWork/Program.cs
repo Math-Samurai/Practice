@@ -456,10 +456,13 @@ namespace PracticalWork
             }
             set
             {
-                DataChanged(this, new DataChangedEventArgs(ChangeInfo.Replace, list.Count.ToString() + " " + list.Count.ToString() + "\n"));
-                list[index].PropertyChanged -= this.OnPropertyChanged;
-                list[index] = value;
-                list[index].PropertyChanged += this.OnPropertyChanged;
+                if (list[index] != value)
+                {
+                    DataChanged(this, new DataChangedEventArgs(ChangeInfo.Replace, list.Count.ToString() + " " + list.Count.ToString() + "\n"));
+                    list[index].PropertyChanged -= this.OnPropertyChanged;
+                    list[index] = value;
+                    list[index].PropertyChanged += this.OnPropertyChanged;
+                }
             }
         }
         public int Count
