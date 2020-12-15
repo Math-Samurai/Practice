@@ -6,17 +6,47 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Globalization;
 using System.Linq;
-
-
+using System.ComponentModel;
 
 namespace PracticalWork
-{
+{    
     enum Consts
     {
         separator = ' '
     }
-    abstract class V3Data
+    enum ChangeInfo
     {
+        ItemChanged,
+        Add,
+        Remove,
+        Replace
+    }
+    class DataChangedEventArgs
+    {
+        public DataChangedEventArgs(ChangeInfo change, string s)
+        {
+            cInfo = change;
+            str = s;
+        }
+        public ChangeInfo cInfo
+        {
+            get; set;
+        }
+        public string str
+        {
+            get; set;
+        }
+        public override string ToString()
+        {
+            return cInfo.ToString() + " " + str;
+        }
+    }
+    delegate void DataChangedEventHandler(object source, DataChangedEventArgs args);
+    abstract class V3Data: INotifyPropertyChanged
+    {
+        string data;
+        DateTime time;
+        public event PropertyChangedEventHandler PropertyChanged;
         public V3Data(string data, DateTime time)
         {
             Data = data;
@@ -70,11 +100,34 @@ namespace PracticalWork
         }
         public string Data
         {
-            get; set;
+            get
+            {
+                return data;
+            }
+            set
+            {
+                data = value;
+                if (PropertyChanged != null)
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs("Data"));
+                }
+                
+            }
         }
         public DateTime Time
         {
-            get; set;
+            get
+            {
+                return time;
+            }
+            set
+            {
+                time = value;
+                if (PropertyChanged != null)
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs("Time"));
+                }
+            }
         }
         public abstract Vector2[] Nearest(Vector2 v);
         public abstract string ToLongString();
@@ -110,7 +163,6 @@ namespace PracticalWork
                     Module.ToString(format);
         }
     }
-
     struct Grid1D
     {
         public Grid1D(float step, int count)
@@ -394,7 +446,22 @@ namespace PracticalWork
     }
     class V3MainCollection: IEnumerable<V3Data>
     {
+        public event DataChangedEventHandler DataChanged;
         private List<V3Data> list;
+        public V3Data this[int index]
+        {
+            get
+            {
+                return list[index];
+            }
+            set
+            {
+                DataChanged(this, new DataChangedEventArgs(ChangeInfo.Replace, list.Count.ToString() + " " + list.Count.ToString() + "\n"));
+                list[index].PropertyChanged -= this.OnPropertyChanged;
+                list[index] = value;
+                list[index].PropertyChanged += this.OnPropertyChanged;
+            }
+        }
         public int Count
         {
             get
@@ -456,10 +523,8 @@ namespace PracticalWork
                 list = new List<V3Data>();
             }
             list.Add(item);
-        }
-        private static bool ToRemove(string id, DateTime date, V3Data obj)
-        {
-            return obj.Data == id && obj.Time == date;
+            item.PropertyChanged += this.OnPropertyChanged;
+            DataChanged(this, new DataChangedEventArgs(ChangeInfo.Add, (list.Count - 1).ToString() + " " + list.Count.ToString() + "\n"));
         }
         public IEnumerator<V3Data> GetEnumerator()
         {
@@ -474,8 +539,15 @@ namespace PracticalWork
         }
         public bool Remove(string id, DateTime date)
         {
-            if (list.RemoveAll(x =>  id == x.Data && date == x.Time) > 0)
+            List<V3Data> temp = list.FindAll(x => id == x.Data && date == x.Time);
+            foreach (V3Data item in temp)
             {
+                item.PropertyChanged -= this.OnPropertyChanged;
+            }
+            int PrevCount = list.Count;
+            if (list.RemoveAll(x => temp.Contains(x)) > 0)
+            {
+                DataChanged(this, new DataChangedEventArgs(ChangeInfo.Remove, PrevCount.ToString() + " " + list.Count.ToString() + "\n"));
                 return true;
             }
             return false;
@@ -486,19 +558,19 @@ namespace PracticalWork
             V3DataOnGrid item =
                 new V3DataOnGrid("Uniform grid; Axis X: step = 0.1, count = 11; Axis Y: step = 0.1; count = 11", DateTime.Now, new Grid1D(0.1f, 11), new Grid1D(0.1f, 11));
             item.InitRandom(0f, 10f);
-            list.Add(item);
+            this.Add(item);
 
             V3DataOnGrid item1 =
                 new V3DataOnGrid("Uniform grid; Axis X: step = 0.1, count = 11; Axis Y: step = 0.1; count = 11", DateTime.Now, new Grid1D(0.1f, 0), new Grid1D(0.1f, 0));
             item1.InitRandom(0f, 10f);
-            list.Add(item1);
+            this.Add(item1);
 
             V3DataCollection item2 = new V3DataCollection("Test.txt");
-            list.Add(item2);
+            this.Add(item2);
 
             V3DataCollection item3 = new V3DataCollection("Data", DateTime.Now);
             item3.InitRandom(0, 0.1f, 0.1f, 0.1, 0.1);
-            list.Add(item3);
+            this.Add(item3);
         }
         public override string ToString()
         {
@@ -531,25 +603,25 @@ namespace PracticalWork
             }
             return res;
         }
+        public void OnPropertyChanged(object source, PropertyChangedEventArgs args)
+        {
+            DataChanged(this, new DataChangedEventArgs(ChangeInfo.ItemChanged, list.Count.ToString() + " " + list.Count.ToString() + "\n"));
+        }
     }
     class Program
-    {
+    {   
+        static void OnDataChanged(object source, DataChangedEventArgs args)
+        {
+            Console.WriteLine(args.ToString());
+        }
         static void Main(string[] args)
         {
-            string format = "F5";
-            V3DataCollection obj1 = new V3DataCollection("Test.txt");
-            Console.WriteLine(obj1.ToLongString(format));
-
             V3MainCollection obj2 = new V3MainCollection();
+            obj2.DataChanged += OnDataChanged;
             obj2.AddDefaults();
-            Console.WriteLine("Minimum number of calculations = " + obj2.MinNumberOfCalcs);
-            Console.WriteLine("Maximum distance between points = " + obj2.MaxDistance);
-            Console.WriteLine("Information of multiple DataItems:");
-            IEnumerable<DataItem> mulpiplePoints = obj2.GetMultiplePoints;
-            foreach (DataItem i in mulpiplePoints)
-            {
-                Console.WriteLine(i.ToLongString(format));
-            }
+            obj2[0] = new V3DataCollection("Test1.txt");
+            obj2[0].Data = "New Data";
+            obj2.Remove(obj2[0].Data, obj2[0].Time);
         }
     }
 }

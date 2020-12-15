@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\PracticalWork\\PracticalWork\\PracticalWork.csproj",
+      "projectUniqueName": "D:\\Practice\\PracticalWork\\PracticalWork\\PracticalWork.csproj",
       "projectName": "PracticalWork",
-      "projectPath": "D:\\PracticalWork\\PracticalWork\\PracticalWork.csproj",
+      "projectPath": "D:\\Practice\\PracticalWork\\PracticalWork\\PracticalWork.csproj",
       "packagesPath": "C:\\Users\\nikol\\.nuget\\packages\\",
-      "outputPath": "D:\\PracticalWork\\PracticalWork\\obj\\",
+      "outputPath": "D:\\Practice\\PracticalWork\\PracticalWork\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\nikol\\AppData\\Roaming\\NuGet\\NuGet.Config",
